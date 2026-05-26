@@ -14,10 +14,10 @@ Pad embeddings, ReLU², zero-init projections, QK-norm
 
 
 
-### Results
+#### results
 results of muon lr grid search at `results_grid.tsv`
 
-
+#### settings
 98.76M params total
 ```
 n_layer: 9
