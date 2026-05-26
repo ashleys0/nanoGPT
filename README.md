@@ -1,6 +1,6 @@
 2026.05.25
 
-files, including model.py and train.py are modified from nanoGPT and modded-nanogpt. includes improvements like muon.  
+files, including model.py and train.py are modified from nanoGPT and modded-nanogpt. includes improvements like muon. uses wandb for logging and hydra for configs. 
 
 ```
 15.2 minutes	Pad embeddings, ReLU², zero-init projections, QK-norm	10/14/24	log
@@ -11,3 +11,8 @@ Introduced the Muon optimizer
 Muon improvements
 Pad embeddings, ReLU², zero-init projections, QK-norm
 ```
+
+
+
+### Results
+results of muon lr grid search at `results_grid.tsv`
