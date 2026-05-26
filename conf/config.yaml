@@ -1,0 +1,62 @@
+# I/O
+ep_num: ${hydra:job.num}      # auto-assigned 0..N-1 by Hydra (incl. --multirun)
+out_dir: ckpt/ep_${ep_num}
+eval_interval: 200
+log_interval: 200
+eval_iters: 200
+eval_only: false
+always_save_checkpoint: false
+save_interval: 500
+init_from: scratch
+
+# early stopping
+patience: 3
+
+# wandb
+wandb_log: true
+wandb_project: 251B_nanoGPT_hydra
+wandb_run_name: gpt_muon_ep_${ep_num}
+wandb_group: lr_muonlr_sweep
+
+# data
+n_shards: 20
+gradient_accumulation_steps: 30
+batch_size: 32
+block_size: 1024
+
+# model
+n_layer: 9
+n_head: 12
+n_embd: 768
+mlp_hidden: 2816
+dropout: 0.0
+bias: false
+
+# optim
+learning_rate: 3e-4
+muon_lr: 3e-4
+muon_momentum: 0.95
+max_iters: 1500
+weight_decay: 0.1
+beta1: 0.9
+beta2: 0.95
+grad_clip: 1.0
+
+# lr decay
+decay_lr: true
+warmup_iters: 100
+lr_decay_iters: ${max_iters}
+min_lr: 6e-5
+
+# system
+backend: nccl
+device: cuda
+dtype: bfloat16
+compile: true
+
+hydra:
+  job:
+    chdir: false
+  sweep:
+    dir: multirun/${now:%Y-%m-%d_%H-%M-%S}
+    subdir: ep${hydra:job.num}_lr${learning_rate}_muon${muon_lr}
