@@ -49,7 +49,17 @@ def compute_metrics(model, data):
         "tokens": total_tokens,
     }
 
+# quick eval of 1 ckpt on val set
+def eval_one_ckpt(ckpt_path):
+    data = np.memmap(DATA_PATH, dtype=np.uint16, mode="r")
+    data = torch.from_numpy(data.astype(np.int64))
+    print(f"Evaluating ckpt: {ckpt_path}:")
+    model, _ = load_model(ckpt_path)
+    m = compute_metrics(model, data)
+    print(m)
 
+
+# eval a bunch that it's in a results.tsv file
 def main():
     import re
     import csv
@@ -109,4 +119,6 @@ if __name__ == "__main__":
     BLOCK_SIZE = 1024
     BATCH_SIZE = 8
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    main()
+    # main()
+
+    eval_one_ckpt('ckpt/ep_15/ckpt_4000.pt')

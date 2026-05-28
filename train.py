@@ -35,8 +35,12 @@ from torch.distributed import init_process_group, destroy_process_group
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
+OmegaConf.register_new_resolver("add", lambda a, b: int(a) + int(b), replace=True)
 
 from model import GPTConfig, GPT
+
+
+from util import write_param_report
 
 
 
@@ -230,67 +234,10 @@ def main(cfg: DictConfig):
     model.to(device)
 
 
-    # ---- print architecture and parameter breakdown ----
-    def write_param_report(model, path='num_params.txt'):
-        lines = []
-        lines.append("=" * 80)
-        lines.append("MODEL ARCHITECTURE")
-        lines.append("=" * 80)
-        lines.append(str(model))
-        lines.append("")
-        lines.append("=" * 80)
-        lines.append("PARAMETER BREAKDOWN BY MODULE")
-        lines.append("=" * 80)
-        lines.append(f"{'Module':<60} {'Shape':<25} {'Params':>15}")
-        lines.append("-" * 100)
-
-        total = 0
-        trainable = 0
-        for name, p in model.named_parameters():
-            n = p.numel()
-            total += n
-            if p.requires_grad:
-                trainable += n
-            shape_str = str(tuple(p.shape))
-            lines.append(f"{name:<60} {shape_str:<25} {n:>15,}")
-
-        lines.append("-" * 100)
-        lines.append("")
-        lines.append("=" * 80)
-        lines.append("PARAMETER GROUPS (high-level)")
-        lines.append("=" * 80)
-
-        # group by top-level submodule for a cleaner summary
-        from collections import defaultdict
-        groups = defaultdict(int)
-        for name, p in model.named_parameters():
-            top = name.split('.')[0:2]  # e.g. "transformer.wte"
-            key = '.'.join(top)
-            groups[key] += p.numel()
-        for key, n in sorted(groups.items(), key=lambda x: -x[1]):
-            pct = 100 * n / total
-            lines.append(f"{key:<40} {n:>15,}  ({pct:5.2f}%)")
-
-        lines.append("")
-        lines.append("=" * 80)
-        lines.append("TOTALS")
-        lines.append("=" * 80)
-        lines.append(f"Total params:     {total:>15,}  ({total/1e6:.2f}M)")
-        lines.append(f"Trainable params: {trainable:>15,}  ({trainable/1e6:.2f}M)")
-        lines.append(f"Frozen params:    {total - trainable:>15,}")
-
-        print(f"Total params:     {total:>15,}  ({total/1e6:.2f}M)")
-        print(f"Trainable params: {trainable:>15,}  ({trainable/1e6:.2f}M)")
-        print(f"Frozen params:    {total - trainable:>15,}")
-
-        report = '\n'.join(lines)
-        with open(path, 'w') as f:
-            f.write(report)
-        print(f"\n[wrote param report to {path}]")
-
     # only print/save on the master process if you're using DDP
     if (not ddp) or (ddp_rank == 0):
-        write_param_report(model, f'ep_{ep_num}_n_params.txt')
+        # write_param_report(model, f'ep{ep_num}_n_params.txt')
+        pass
 
 
 
@@ -375,6 +322,7 @@ def main(cfg: DictConfig):
     early_stop = False
     best_step = 0
     best_train_loss = float('nan')
+    last_grad_norm = float('nan')
 
     for iter_num in trange(max_iters):
 
@@ -394,6 +342,13 @@ def main(cfg: DictConfig):
                 muon_lr_now = optimizers[1].param_groups[0]['lr']
                 tqdm.write(f"[diag iter {iter_num}] adamw_lr={adamw_lr:.2e} muon_lr={muon_lr_now:.2e} "
                            f"adamw_drift={adamw_drift:.4f} muon_drift={muon_drift:.4f}")
+                if wandb_log:
+                    wandb.log({
+                        "diag/muon_drift": muon_drift,
+                        "diag/adamw_drift": adamw_drift,
+                        "lr/adamw": adamw_lr,
+                        "lr/muon": muon_lr_now,
+                    }, step=iter_num)
 
         # unified eval: drives wandb logging, best-checkpoint save, and early-stop patience
         if iter_num % eval_interval == 0 and master_process:
@@ -409,7 +364,8 @@ def main(cfg: DictConfig):
                     "val/loss": losses['val'],
                     "lr": lr,
                     "mfu": running_mfu * 100,
-                })
+                    "grad_norm": last_grad_norm,
+                }, step=iter_num)
 
             improved = losses['val'] < best_val_loss
             if improved:
@@ -467,11 +423,14 @@ def main(cfg: DictConfig):
             X, Y = get_batch('train')
             # backward pass, with gradient scaling if training in fp16
             scaler.scale(loss).backward()
-        # clip the gradient
-        if grad_clip != 0.0:
-            for opt in optimizers:
-                scaler.unscale_(opt)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+        # unscale, measure grad norm, and clip (measure even when clipping is off)
+        for opt in optimizers:
+            scaler.unscale_(opt)
+        grad_norm = torch.nn.utils.clip_grad_norm_(
+            model.parameters(),
+            grad_clip if grad_clip != 0.0 else float('inf'),
+        )
+        last_grad_norm = grad_norm.item()
         # step each optimizer (scaler is a no-op for bfloat16/float32)
         for opt in optimizers:
             scaler.step(opt)
