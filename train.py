@@ -56,6 +56,7 @@ def main(cfg: DictConfig):
     always_save_checkpoint = cfg.always_save_checkpoint
     save_interval = cfg.save_interval
     init_from = cfg.init_from
+    ckpt_load_path = cfg.ckpt_load_path
     patience = cfg.patience
     wandb_log = cfg.wandb_log
     wandb_project = cfg.wandb_project
@@ -197,12 +198,15 @@ def main(cfg: DictConfig):
         gptconf = GPTConfig(**model_args)
         model = GPT(gptconf)
     elif init_from == 'resume':
-        print(f"Resuming training from {out_dir}")
-        # resume training from a checkpoint.
-        ckpt_path = os.path.join(out_dir, 'ckpt.pt')
-        checkpoint = torch.load(ckpt_path, map_location=device)
+        # load WEIGHTS ONLY from a checkpoint and start a fresh training run
+        # (fresh optimizer + LR schedule from iter 0). Output still goes to out_dir.
+        # Optimizer state is intentionally NOT restored — that would be exact resume.
+        assert ckpt_load_path is not None, "init_from=resume requires ckpt_load_path"
+        assert os.path.exists(ckpt_load_path), f"ckpt_load_path not found: {ckpt_load_path}"
+        print(f"Loading weights from {ckpt_load_path} (fresh training, output -> {out_dir})")
+        checkpoint = torch.load(ckpt_load_path, map_location=device)
         checkpoint_model_args = checkpoint['model_args']
-        # force these config attributes to be equal otherwise we can't even resume training
+        # force these config attributes to be equal otherwise the weights won't load
         # the rest of the attributes (e.g. dropout) can stay as desired from command line
         for k in ['n_layer', 'n_head', 'n_embd', 'block_size', 'bias', 'vocab_size']:
             model_args[k] = checkpoint_model_args[k]
@@ -217,8 +221,7 @@ def main(cfg: DictConfig):
             if k.startswith(unwanted_prefix):
                 state_dict[k[len(unwanted_prefix):]] = state_dict.pop(k)
         model.load_state_dict(state_dict)
-        iter_num = checkpoint['iter_num']
-        best_val_loss = checkpoint['best_val_loss']
+        # iter_num and best_val_loss intentionally left at their fresh defaults (0, 1e9)
     elif init_from.startswith('gpt2'):
         print(f"Initializing from OpenAI GPT-2 weights: {init_from}")
         # initialize from OpenAI GPT-2 weights

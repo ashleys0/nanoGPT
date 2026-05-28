@@ -10,6 +10,7 @@ eval_only: false
 always_save_checkpoint: false
 save_interval: 1000
 init_from: scratch
+ckpt_load_path: null   # path to a .pt to load WEIGHTS from when init_from=resume (output still goes to out_dir)
 
 # early stopping
 patience: 3
