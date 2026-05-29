@@ -277,3 +277,42 @@ class GPT(nn.Module):
             idx_next = torch.multinomial(probs, num_samples=1)
             idx = torch.cat((idx, idx_next), dim=1)
         return idx
+
+
+# -----------------------------------------------------------------------------
+# Evaluation adapter (for the CSE 251B grader, evaluate.py)
+#
+# The grader expects:  model(input_ids) -> logits of shape (batch, seq_len, 50257)
+# but GPT.forward(targets=None) returns (logits, loss) with logits for only the
+# LAST position. This wrapper bridges the gap without touching GPT (so train.py
+# and eval.py are unaffected): it runs the full trunk over every position and
+# returns full-sequence logits. The [..., :50257] slice is a no-op for the
+# current 50257-vocab checkpoints and a guard if a padded (e.g. 50304) vocab is
+# ever used.
+
+class _EvalModel(nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+
+    def forward(self, input_ids):
+        m = self.model
+        x = m.transformer.wte(input_ids)
+        for block in m.transformer.h:
+            x = block(x)
+        x = F.rms_norm(x, (x.size(-1),))
+        logits = m.lm_head(x).float()
+        return logits[:, :, :50257]
+
+
+def load_model(checkpoint_path: str, device: str) -> nn.Module:
+    """Load a trained GPT checkpoint and return a module satisfying the grader
+    contract: model(input_ids) -> (batch, seq_len, 50257) logits."""
+    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    cfg = GPTConfig(**ckpt["model_args"])
+    model = GPT(cfg)
+    # strip possible compile/DDP prefix (matches eval.py's loading recipe)
+    state = {k.removeprefix("_orig_mod."): v for k, v in ckpt["model"].items()}
+    model.load_state_dict(state)
+    model.to(device).eval()
+    return _EvalModel(model).to(device).eval()
