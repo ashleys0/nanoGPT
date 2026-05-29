@@ -8,12 +8,12 @@ log_interval: 200
 eval_iters: 200
 eval_only: false
 always_save_checkpoint: false
-save_interval: 1000
+save_interval: 2000
 init_from: scratch
 ckpt_load_path: null   # path to a .pt to load WEIGHTS from when init_from=resume (output still goes to out_dir)
 
 # early stopping
-patience: 3
+patience: 20
 
 # wandb
 wandb_log: true
@@ -49,7 +49,7 @@ grad_clip: 1.0
 decay_lr: true
 warmup_iters: 100
 lr_decay_iters: ${max_iters}
-min_lr: 6e-5
+min_lr:       # 'None'  
 
 # system
 backend: nccl

@@ -83,7 +83,7 @@ def main(cfg: DictConfig):
     decay_lr = cfg.decay_lr
     warmup_iters = cfg.warmup_iters
     lr_decay_iters = cfg.lr_decay_iters
-    min_lr = cfg.min_lr
+    min_lr = learning_rate / 20 if cfg.min_lr is None else cfg.min_lr
     backend = cfg.backend
     device = cfg.device
     dtype = cfg.dtype
@@ -351,7 +351,7 @@ def main(cfg: DictConfig):
                         "diag/adamw_drift": adamw_drift,
                         "lr/adamw": adamw_lr,
                         "lr/muon": muon_lr_now,
-                    }, step=iter_num)
+                    })
 
         # unified eval: drives wandb logging, best-checkpoint save, and early-stop patience
         if iter_num % eval_interval == 0 and master_process:
@@ -366,9 +366,10 @@ def main(cfg: DictConfig):
                     "train/loss": losses['train'],
                     "val/loss": losses['val'],
                     "lr": lr,
+                    "muon_lr": muon_lr,
                     "mfu": running_mfu * 100,
                     "grad_norm": last_grad_norm,
-                }, step=iter_num)
+                })
 
             improved = losses['val'] < best_val_loss
             if improved:

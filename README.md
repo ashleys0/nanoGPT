@@ -30,13 +30,12 @@ block_size: 1024
 
 
 ### example usage
-These override config at `conf/config.yaml`
+These override default config at `conf/config.yaml`
 from scratch
 ```
 CUDA_VISIBLE_DEVICES=0 python train.py --multirun ep_num=0 n_shards=10  max_iters=1600 learning_rate=1e-2 muon_lr=1e-3 
 
 ```
-
 training from loaded ckpt weights:
 ```
 CUDA_VISIBLE_DEVICES=0 python train.py --multirun ep_num=0 n_shards=10 max_iters=1600 learning_rate=3e-3 muon_lr=3e-4 init_from=resume ckpt_load_path=ckpt/ep_15/ckpt_4000.pt 

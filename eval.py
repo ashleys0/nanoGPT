@@ -121,4 +121,4 @@ if __name__ == "__main__":
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     # main()
 
-    eval_one_ckpt('ckpt/ep_15/ckpt_4000.pt')
+    eval_one_ckpt('ckpt/ep_15/ckpt_10000.pt')
