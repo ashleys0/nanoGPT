@@ -1,0 +1,9 @@
+- ep_num=17
+- n_shards=99
+- max_iters=30000
+- lr_decay_iters=35000
+- warmup_iters=3000
+- learning_rate=0.0001
+- muon_lr=1e-05
+- init_from=resume
+- ckpt_load_path=ckpt/ep_16/ckpt_8000.pt
