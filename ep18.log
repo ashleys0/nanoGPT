@@ -1,0 +1,24 @@
+[2026-05-31 14:03:08,447][HYDRA] Launching 1 jobs locally
+[2026-05-31 14:03:08,447][HYDRA] 	#0 : ep_num=18 n_shards=99 max_iters=40000 lr_decay_iters=20000 warmup_iters=200 learning_rate=2e-05 muon_lr=2e-06 init_from=resume ckpt_load_path=ckpt/ep_17/ckpt_6000.pt
+/data2/ash/251B/nanogpt1/gpt_hydra/train.py:251: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=(dtype == 'float16'))
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /home/ash/.netrc.
+wandb: Currently logged in as: ashleys (ashleys_ucsd) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.26.1
+wandb: Run data is saved locally in /data2/ash/251B/nanogpt1/gpt_hydra/wandb/run-20260531_140314-qk88up8w
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run gpt_muon_ep_18_lr=2e-05_muon_lr=2e-06
+wandb: ⭐️ View project at https://wandb.ai/ashleys_ucsd/251B_nanoGPT_hydra
+wandb: 🚀 View run at https://wandb.ai/ashleys_ucsd/251B_nanoGPT_hydra/runs/qk88up8w
+tokens per iteration will be: 983,040
+found 99 train shards
+loaded 99 train shards, total tokens: 9,853,989,344
+val tokens: 100,000,000
+tokens per step: 983,040
+tokens per epoch: 9,853,989,344
+steps per epoch: 10024.0
+Loading weights from ckpt/ep_17/ckpt_6000.pt (fresh training, output -> ckpt/ep_18)
+number of parameters: 98.76M
+AdamW params: 38,597,376   Muon params: 60,162,048   (fused AdamW: True)
+compiling the model... (takes a ~minute)
+  0%|          | 0/40000 [00:00<?, ?it/s]                                           0%|          | 0/40000 [00:00<?, ?it/s]                                           0%|          | 0/40000 [00:42<?, ?it/s]                                           0%|          | 0/40000 [00:53<?, ?it/s]  0%|          | 1/40000 [00:54<603:52:51, 54.35s/it]  0%|          | 2/40000 [01:03<309:48:20, 27.88s/it]  0%|          | 3/40000 [01:13<215:54:58, 19.43s/it]  0%|          | 4/40000 [01:22<171:48:40, 15.46s/it]  0%|          | 5/40000 [01:31<147:25:30, 13.27s/it]  0%|          | 6/40000 [01:41<132:44:20, 11.95s/it]  0%|          | 7/40000 [01:50<123:26:30, 11.11s/it]  0%|          | 8/40000 [02:00<117:22:03, 10.57s/it]  0%|          | 9/40000 [02:09<113:16:26, 10.20s/it]  0%|          | 10/40000 [02:18<110:29:48,  9.95s/it]  0%|          | 11/40000 [02:28<108:36:51,  9.78s/it]  0%|          | 12/40000 [02:37<107:18:28,  9.66s/it]

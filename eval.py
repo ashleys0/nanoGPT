@@ -153,6 +153,6 @@ if __name__ == "__main__":
     BLOCK_SIZE = 1024
     BATCH_SIZE = 8
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    # main()
+    main()
 
-    eval_one_ckpt(f'ckpt/ep_{ep_num}/ep{ep_num}_best.pt')
+    # eval_one_ckpt(f'ckpt/ep_{ep_num}/ep{ep_num}_best.pt')
