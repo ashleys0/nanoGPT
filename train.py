@@ -351,7 +351,7 @@ def main(cfg: DictConfig):
                         "diag/adamw_drift": adamw_drift,
                         "lr/adamw": adamw_lr,
                         "lr/muon": muon_lr_now,
-                    })
+                    }, step=iter_num)
 
         # unified eval: drives wandb logging, best-checkpoint save, and early-stop patience
         if iter_num % eval_interval == 0 and master_process:
@@ -369,7 +369,7 @@ def main(cfg: DictConfig):
                     "muon_lr": muon_lr,
                     "mfu": running_mfu * 100,
                     "grad_norm": last_grad_norm,
-                })
+                }, step=iter_num)
 
             improved = losses['val'] < best_val_loss
             if improved:
@@ -377,6 +377,9 @@ def main(cfg: DictConfig):
                 best_step = iter_num
                 best_train_loss = losses['train'].item()
                 evals_since_improve = 0
+                if wandb_log:
+                    wandb.run.summary['best_step'] = best_step
+                    wandb.run.summary['best_val_loss'] = best_val_loss.item()
                 if iter_num > 0:
                     checkpoint = {
                         'model': raw_model.state_dict(),
