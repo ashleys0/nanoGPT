@@ -40,7 +40,7 @@ OmegaConf.register_new_resolver("add", lambda a, b: int(a) + int(b), replace=Tru
 from model import GPTConfig, GPT
 
 
-from util import write_param_report
+from util import write_param_report, log_train_loss
 
 
 
@@ -367,7 +367,7 @@ def main(cfg: DictConfig):
                     "val/loss": losses['val'],
                     "lr": lr,
                     "muon_lr": muon_lr,
-                    "mfu": running_mfu * 100,
+                    # "mfu": running_mfu * 100,
                     "grad_norm": last_grad_norm,
                 }, step=iter_num)
 
@@ -377,9 +377,9 @@ def main(cfg: DictConfig):
                 best_step = iter_num
                 best_train_loss = losses['train'].item()
                 evals_since_improve = 0
-                if wandb_log:
-                    wandb.run.summary['best_step'] = best_step
-                    wandb.run.summary['best_val_loss'] = best_val_loss.item()
+                # if wandb_log:
+                #     wandb.run.summary['best_step'] = best_step
+                #     wandb.run.summary['best_val_loss'] = best_val_loss.item()
                 if iter_num > 0:
                     checkpoint = {
                         'model': raw_model.state_dict(),
@@ -396,6 +396,7 @@ def main(cfg: DictConfig):
                     tqdm.write(f"early stop at iter {iter_num} "
                                f"(no val improvement in {patience} evals)")
                     early_stop = True
+
 
         # periodic checkpoint (independent of eval cadence)
         if save_interval and iter_num > 0 and iter_num % save_interval == 0 and master_process:
@@ -449,15 +450,21 @@ def main(cfg: DictConfig):
         t1 = time.time()
         dt = t1 - t0
         t0 = t1
+
         if iter_num % log_interval == 0 and master_process:
             # get loss as float. note: this is a CPU-GPU sync point
             # scale up to undo the division above, approximating the true total loss (exact would have been a sum)
             lossf = loss.item() * gradient_accumulation_steps
-            if local_iter_num >= 5: # let the training loop settle a bit
-                mfu = raw_model.estimate_mfu(batch_size * gradient_accumulation_steps, dt)
-                running_mfu = mfu if running_mfu == -1.0 else 0.9*running_mfu + 0.1*mfu
-            # tqdm.write(f"iter {iter_num}: loss {lossf:.4f}, time {dt:.2f}sec, mfu {running_mfu*100:.2f}%")
             tqdm.write(f"iter {iter_num}: loss {lossf:.4f}")
+            log_train_loss(ep_num, iter_num, lossf, out_dir)
+            # if wandb_log:
+            #     wandb.log({
+            #         "iter": iter_num,
+            #         "train/lossf": lossf,
+            #         "lr": lr,
+            #         "muon_lr": muon_lr,
+            #         "grad_norm": last_grad_norm,
+            #     }, step=iter_num)
         local_iter_num += 1
 
 
