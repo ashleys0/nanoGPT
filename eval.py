@@ -144,7 +144,7 @@ def main():
 
 
 if __name__ == "__main__":
-    ep_num = 19
+    ep_num = 20
     CKPT_DIR = os.path.join(os.path.dirname(__file__), "ckpt", f"ep_{ep_num}")
     DATA_PATH = '/data2/ash/251B/nanogpt1/val.bin'
     DATA_PATH = '../val.bin'

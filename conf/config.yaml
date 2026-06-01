@@ -13,13 +13,13 @@ init_from: scratch
 ckpt_load_path: null   # path to a .pt to load WEIGHTS from when init_from=resume (output still goes to out_dir)
 
 # early stopping
-patience: 40
+patience: 20
 
 # wandb
 wandb_log: true
 wandb_project: 251B_nanoGPT_hydra
-wandb_run_name: gpt_muon_ep_${ep_num}_lr=${learning_rate}_muon_lr=${muon_lr}
-wandb_group: lr_muonlr_sweep
+wandb_run_name: gpt_muon_ep_${ep_num}_350BT_lr=${learning_rate}_muon_lr=${muon_lr}
+wandb_group: fineweb-edu-350BT
 
 # data
 n_shards: 20

@@ -1,0 +1,8 @@
+- ep_num=20
+- max_iters=20000
+- lr_decay_iters=10000
+- warmup_iters=200
+- learning_rate=0.003
+- muon_lr=0.0003
+- init_from=resume
+- ckpt_load_path=ckpt/ep_19/ckpt_1000.pt
