@@ -46,7 +46,6 @@ from util import write_param_report, log_train_loss
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg: DictConfig):
-    # unpack config into locals so the rest of the function reads naturally
     ep_num = cfg.ep_num
     out_dir = cfg.out_dir
     eval_interval = cfg.eval_interval
@@ -353,6 +352,7 @@ def main(cfg: DictConfig):
                         "lr/muon": muon_lr_now,
                     }, step=iter_num)
 
+        improved = False
         # unified eval: drives wandb logging, best-checkpoint save, and early-stop patience
         if iter_num % eval_interval == 0 and master_process:
             losses = estimate_loss()
@@ -439,6 +439,23 @@ def main(cfg: DictConfig):
             grad_clip if grad_clip != 0.0 else float('inf'),
         )
         last_grad_norm = grad_norm.item()
+
+        if iter_num % log_interval == 0 and master_process:
+            # get loss as float. note: this is a CPU-GPU sync point
+            # scale up to undo the division above, approximating the true total loss (exact would have been a sum)
+            lossf = loss.item() * gradient_accumulation_steps
+            tqdm.write(f"iter {iter_num}: loss {lossf:.4f}")
+            log_train_loss(ep_num, iter_num, lossf, out_dir)
+
+            if wandb_log:
+                wandb.log({
+                    "iter": iter_num,
+                    "train/lossf": lossf,
+                    "lr": lr,
+                    "muon_lr": muon_lr,
+                    "grad_norm": last_grad_norm,
+                }, step=iter_num)
+
         # step each optimizer (scaler is a no-op for bfloat16/float32)
         for opt in optimizers:
             scaler.step(opt)
@@ -451,20 +468,7 @@ def main(cfg: DictConfig):
         dt = t1 - t0
         t0 = t1
 
-        if iter_num % log_interval == 0 and master_process:
-            # get loss as float. note: this is a CPU-GPU sync point
-            # scale up to undo the division above, approximating the true total loss (exact would have been a sum)
-            lossf = loss.item() * gradient_accumulation_steps
-            tqdm.write(f"iter {iter_num}: loss {lossf:.4f}")
-            log_train_loss(ep_num, iter_num, lossf, out_dir)
-            # if wandb_log:
-            #     wandb.log({
-            #         "iter": iter_num,
-            #         "train/lossf": lossf,
-            #         "lr": lr,
-            #         "muon_lr": muon_lr,
-            #         "grad_norm": last_grad_norm,
-            #     }, step=iter_num)
+
         local_iter_num += 1
 
 
